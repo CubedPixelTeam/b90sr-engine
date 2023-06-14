@@ -12,9 +12,10 @@ class APlayer{
     float sy;
     int id;
     bool hflip;
+    int speedcap;
     int cbg;
-    int checkCollisionRight(int x, int y);
-    int checkCollisionLeft(int x, int y);
+    int checkCollisionRight(int x, int y, int speed);
+    int checkCollisionLeft(int x, int y, int speed);
     int checkCollisionBottom(int x, int y);
     int Create(int id, int x, int y);
     int Move();

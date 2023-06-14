@@ -2,12 +2,12 @@
 #include "player.h"
 #include "all_gfx.h"
 int rightDistance = 0;
-int APlayer::checkCollisionRight(int x, int y){
-	for(int i = 1; i < 30; i ++) if(PA_EasyBgGetPixel(1,this->cbg,x + 24, y + i) != 0) return 1;
+int APlayer::checkCollisionRight(int x, int y, int speed){
+	for(int i = 1; i < 30; i ++) if(PA_EasyBgGetPixel(1,this->cbg,x + 22 + speed, y + i) != 0) return 1;
 	return 0;
 }
-int APlayer::checkCollisionLeft(int x, int y){
-	for(int i = 1; i < 30; i ++) if(PA_EasyBgGetPixel(1,this->cbg,x + 7,y+i) != 0) return 1;
+int APlayer::checkCollisionLeft(int x, int y, int speed){
+	for(int i = 1; i < 30; i ++) if(PA_EasyBgGetPixel(1,this->cbg,x + 5 + speed,y+i) != 0) return 1;
 	return 0;
 }
 int APlayer::checkCollisionBottom(int x, int y){
@@ -27,24 +27,30 @@ int APlayer::Create(int id, int x, int y){
 }
 int distance = 0;
 int APlayer::Move(){
-	if(Pad.Held.Right && (checkCollisionRight(this->sx,this->sy + 1) == 0)) {
-		if(this->vx < 2) this->vx += 0.5;
+	if(Pad.Held.Right && (checkCollisionRight(this->sx,this->sy + 1,this->speedcap) == 0)) {
+		if(this->vx < this->speedcap) this->vx += 0.5;
+		else if(this->vx > this->speedcap) this->vx = this->speedcap;
 		this->x += this->vx;
 		this->hflip = false;
 	}
-	else if(Pad.Held.Left && (checkCollisionLeft(this->sx,this->sy + 1) == 0)) {
-		if(this->vx < 2) this->vx += 0.5;
+	else if(Pad.Held.Left && (checkCollisionLeft(this->sx - this->speedcap,this->sy + 1,this->speedcap) == 0)) {
+		if(this->vx < this->speedcap) this->vx += 0.5;
+		else if(this->vx > this->speedcap) this->vx = this->speedcap;
 		this->x -= this->vx;
 		this->hflip = true;
 	}
 	if(Pad.Newpress.Left){
 		this->hflip = true;
-		PA_StartSpriteAnim(1,this->id,7,10,5);
+		PA_StartSpriteAnim(1,this->id,7,10,15);
 	}
 	else if(Pad.Newpress.Right){
 		this->hflip = false;
-		PA_StartSpriteAnim(1,this->id,1,4,5);
+		PA_StartSpriteAnim(1,this->id,1,4,15);
 	}
+	if(Pad.Held.Y || Pad.Held.X){
+		this->speedcap = 5;
+	}
+	else if(!(Pad.Held.Y || Pad.Held.X)) this->speedcap = 2;
 	if(!(Pad.Held.Right || Pad.Held.Left)) {
 		PA_SpriteAnimPause(1,this->id,1);
 		if(this->hflip == false) PA_SetSpriteAnimFrame(1,this->id,0);
@@ -54,10 +60,12 @@ int APlayer::Move(){
 	return 0;
 }
 bool touchingGround = false;
+int jumptimer = 0;
+bool jump = false;
 int APlayer::Gravity(){
 	if(checkCollisionBottom(this->sx,this->sy + 32 + this->g) == 0){
 		PA_SpriteAnimPause(1,this->id,1);
-		this->g += 0.3;
+		this->g += 0.4;
 		if(this->hflip == false) PA_SetSpriteAnimFrame(1,this->id,5);
 		else PA_SetSpriteAnimFrame(1,this->id,11);
 	}
@@ -68,10 +76,13 @@ int APlayer::Gravity(){
 		this->y += distance;
 		distance = 0;
 		this->g = 0;
-		touchingGround = true;
-		if(PA_GetSpriteAnimFrame(1,this->id) == 5) PA_StartSpriteAnim(1,this->id,1,4,5);
-		else if(PA_GetSpriteAnimFrame(1,this->id) == 11) PA_StartSpriteAnim(1,this->id,7,10,5);
-		if(Pad.Newpress.A) this->g = -6;
+		if(PA_GetSpriteAnimFrame(1,this->id) == 5) PA_StartSpriteAnim(1,this->id,1,4,15);
+		else if(PA_GetSpriteAnimFrame(1,this->id) == 11) PA_StartSpriteAnim(1,this->id,7,10,15);
+		if(Pad.Newpress.A) {
+			touchingGround = true;
+			jumptimer = 0;
+			this->g = -7;
+		}
 	}
 	if(checkCollisionBottom(this->sx,this->sy + this->g) != 0){
 		for(int i = 0; i < this->g; i ++){
@@ -82,6 +93,14 @@ int APlayer::Gravity(){
 		this->g = 0;
     }
 	this->y += this->g;
+	if(Pad.Held.A && touchingGround == true){
+		jumptimer ++;
+		if(jumptimer < 12){
+		this->g = -5;
+		}
+		else touchingGround = false;
+	}
+	else touchingGround = false;
     return 0;
 }
 int bg_x = 0;
