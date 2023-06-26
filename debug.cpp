@@ -3,18 +3,21 @@
 #include "debug.h"
 
 int debugMenu(){
-    PA_InitText(0,0);
-    PA_InitText(1,0);
-    int select = 0;
-    PA_OutputSimpleText(1,0,0,"B90sR debug menu.");
+    u8 select = 0;
     while(1){
-        PA_ClearTextBg(0);
-        PA_OutputSimpleText(0,0,select,">");
-        PA_OutputSimpleText(0,1,0,"Fever Dream Zone Act 1");
+        select += Pad.Newpress.Down - Pad.Newpress.Up;
+        PA_ClearTextBg(1);
+        PA_OutputSimpleText(1,0,select,">");
+        PA_OutputSimpleText(1,1,0,"fdz1");
+        PA_OutputSimpleText(1,1,1,"fdz2");
         if(Pad.Newpress.A){
             switch(select){
                 case 0:
                 fdz1Func();
+                return 0;
+                break;
+                case 1:
+                fdz2Func();
                 return 0;
                 break;
             }
