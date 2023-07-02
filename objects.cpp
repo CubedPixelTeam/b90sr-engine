@@ -18,8 +18,8 @@ int ACrystal::ReActivate(){
     return 0;
 }
 int ACrystal::vbl(s32 PlayerX, s32 PlayerY){
-   this->sx = this->x - PA_BgInfo[1][2].ScrollX;
-   this->sy = this->y - PA_BgInfo[1][2].ScrollY;
+   this->sx = this->x - PA_BgInfo[0][2].ScrollX;
+   this->sy = this->y - PA_BgInfo[0][2].ScrollY;
    if((this->sx < -16 || this->sx > 272 )||
    (this->sy < -16 || this->sy > 208)||
    this->alive == false) {
@@ -57,15 +57,16 @@ int ACannon::ReActivate(){
     return 0;
 }
 int ACannon::vbl(s32 PlayerX,s32 PlayerY){
-    if(this->hflip == true) this->x ++;
-    else this->x --;
+    if(this->hflip == true) this->x += 0.6;
+    else this->x -= 0.6;
     PA_SetSpriteHflip(1,this->id,this->hflip);
    this->sx = this->x - PA_BgInfo[1][2].ScrollX;
    this->sy = this->y - PA_BgInfo[1][2].ScrollY;
-    if(PA_EasyBgGetPixel(0,2,this->sx + 16, this->sy) != 0) this->hflip = false;
-    else if(PA_EasyBgGetPixel(0,2,this->sx - 16, this->sy) !=0) this->hflip = true;
+    if(PA_EasyBgGetPixel(0,2,this->sx + 1, this->sy) != 0) this->hflip = false;
+    else if(PA_EasyBgGetPixel(0,2,this->sx, this->sy) !=0) this->hflip = true;
     
-    if(PA_EasyBgGetPixel(0,2,this->sx, this->sy + 16) == 0){
+    if(PA_EasyBgGetPixel(0,2,this->sx + 14, this->sy + 16) == 0||
+    PA_EasyBgGetPixel(0,2,this->sx - 2, this->sy + 16) == 0){
         if(this->hflip == true) this->hflip = false;
         else this->hflip = true;
     }
@@ -79,4 +80,14 @@ int ACannon::vbl(s32 PlayerX,s32 PlayerY){
    }
    else PA_SetSpriteXY(1,this->id,this->sx,this->sy);
    return 0;
+}
+int ACannon::CreateGFX2(u8 id, u8 pal, s32 x,s32 y, u8 sc, u8 cb){
+    this->id = id;
+    this->x = x;
+    this->y = y;
+    this->sc = sc;
+    this->cb = cb;
+    this->alive = true;
+    PA_CreateSprite(1,id,(void*)xed_Sprite,OBJ_SIZE_16X16,1,pal,x,y);
+    return 0;
 }

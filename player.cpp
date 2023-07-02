@@ -2,24 +2,28 @@
 #include "player.h"
 #include "all_gfx.h"
 bool touchingGround = true;
-int jumptimer = 0;
+u8 jumptimer = 0;
 bool jump = false;
 int APlayer::checkCollisionRight(s32 x, s32 y, s8 speed){
-	for(int i = -1; i < 31; i ++) {
-		u8 pixel = PA_EasyBgGetPixel(this->screenc,this->cbg,x + 22 + speed, y + i);
+	for(s8 i = -1; i < 31; i ++) {
+		for(s8 px = 0; px < speed; px ++){
+		u8 pixel = PA_EasyBgGetPixel(this->screenc,this->cbg,x + (22 + px), y + i + this->g);
 		if(pixel != 0) return pixel;
+		}
 	}
 	return 0;
 }
 int APlayer::checkCollisionLeft(s32 x, s32 y, s8 speed){
-	for(int i = -1; i < 31; i ++) {
-		u8 pixel = PA_EasyBgGetPixel(this->screenc,this->cbg,x + (8 - speed),y+i);
-		if(pixel != 0) return pixel;
+	for(s8 i = -1; i < 31; i ++) {
+		for(s8 px = 0; px < speed; px ++){
+			u8 pixel = PA_EasyBgGetPixel(this->screenc,this->cbg,x + (8 - px),y+i+this->g);
+			if(pixel != 0) return pixel;
+		}
 	}
 	return 0;
 }
 int APlayer::checkCollisionBottom(s32 x, s32 y){
-	for(int i = 10; i < 21-this->speedcap; i ++) {
+	for(s8 i = 10; i < 21-this->speedcap; i ++) {
 		u8 pixel = PA_EasyBgGetPixel(this->screenc,this->cbg,x+i,y);
 		if(pixel != 0) return pixel;
 		//else if(PA_EasyBgGetPixel(this->screenc,this->cbg,x+i,y) == 2) return 2;
@@ -48,12 +52,14 @@ int APlayer::Create(u8 id, s32 x, s32 y,u8 c,u8 b,u8 t, u8 d, u8 ut){
 int distance = 0;
 int APlayer::Move(){
 	u8 pixel = checkCollisionRight(this->sx,this->sy + 1,this->speedcap);
+	if(pixel != 0) this->speedcap = 2;
 	if(Pad.Held.Right && ((pixel == 0) || (pixel == this->bp))) {
 		this->x += this->speedcap;
 		this->hflip = false;
 	}	
 	else if(Pad.Held.Right && (pixel == this->death))return 1;
 	pixel = checkCollisionLeft(this->sx,this->sy + 1,this->speedcap);
+	if(pixel != 0) this->speedcap = 2;
 	if(Pad.Held.Left && ((pixel == 0) || (pixel == bp))) {
 		this->x -= this->speedcap;
 		this->hflip = true;
@@ -71,9 +77,9 @@ int APlayer::Move(){
 	if(Pad.Held.Y || Pad.Held.X){
 		this->speedcap = 4;
 	}
-	else if(!(Pad.Held.Y || Pad.Held.X)||
-	(Pad.Held.Right && (checkCollisionRight(this->sx,this->sy + 1,this->speedcap+1) != 0))||
-	(Pad.Held.Left && (checkCollisionLeft(this->sx,this->sy + 1,this->speedcap+1) != 0))) this->speedcap = 2;
+	if(!(Pad.Held.Y || Pad.Held.X)||
+	checkCollisionRight(this->sx,this->sy + 1,this->speedcap)!=0||
+	checkCollisionLeft(this->sx,this->sy + 1,this->speedcap)!=0) this->speedcap = 2;
 	if(!(Pad.Held.Right || Pad.Held.Left)) {
 		PA_SpriteAnimPause(1,this->id,1);
 		if(this->hflip == false) PA_SetSpriteAnimFrame(1,this->id,0);
@@ -81,15 +87,14 @@ int APlayer::Move(){
 	}
 	return 0;
 }
-int delay_timer = 0;
+u8 delay_timer = 0;
 int APlayer::Gravity(){
-	s8 pixel = checkCollisionBottom(this->sx,this->sy + 32 + this->g);
+	u8 pixel = checkCollisionBottom(this->sx,this->sy + 32 + this->g);
 	if(pixel == 0){
 		PA_SpriteAnimPause(1,this->id,1);
 		this->g += 0.4;
-		delay_timer ++;
-		if(delay_timer > 40) delay_timer = 40;
-		else if(delay_timer < 9 && this->g > 0){
+		if(delay_timer < 10) delay_timer ++;
+		if(delay_timer < 9 && this->g > 0){
 			if(Pad.Newpress.A || Pad.Newpress.B) {
 				touchingGround = true;
 				jumptimer = 10;
@@ -112,7 +117,7 @@ int APlayer::Gravity(){
 		if(PA_GetSpriteAnimFrame(1,this->id) == 5) PA_StartSpriteAnim(1,this->id,1,4,15);
 		else if(PA_GetSpriteAnimFrame(1,this->id) == 11) PA_StartSpriteAnim(1,this->id,6,10,15);
 		if(Pad.Newpress.A || Pad.Newpress.B) {
-			touchingGround = true;
+		touchingGround = true;
 			jumptimer = 0;
 			this->g = -7;
 			mmEffect(SFX_JUMP);
@@ -128,11 +133,10 @@ int APlayer::Gravity(){
 */
 	pixel = checkCollisionBottom(this->sx,this->sy + this->g);
 	if(pixel == this->death) return 1; 
-	if(pixel == this->co ||
-	(pixel == this->bp && this->g >= 0)){
-		for(int i = 0; i < this->g; i ++){
-			if(checkCollisionBottom(this->sx,this->sy + 32 + distance) == 0) distance ++;
-		}
+	else if(pixel == this->co ){
+			for(int i = 0; i < this->g; i ++){
+				if(checkCollisionBottom(this->sx,this->sy + 32 + distance) == 0) distance ++;
+			}
 		this->y += distance;
 		distance = 0;
 		this->g = 0;
@@ -161,6 +165,6 @@ int APlayer::Update(){
     this->sx = (this->x - player_bgx) - 4;
     this->sy = (this->y - player_bgy) - 4;
     PA_SetSpriteXY(1,this->id,this->sx,this->sy - 22);
-    PA_EasyBgScrollXY(1,this->cbg,player_bgx,player_bgy);
+    PA_EasyBgScrollXY(this->screenc,this->cbg,player_bgx,player_bgy);
     return 0;
 }
